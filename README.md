@@ -1,4 +1,4 @@
-# Python-Automated Network Device Validation Lab
+# Python-Automated Network Device Validation
 
 A Python command-line lab that validates a Raspberry Pi's network connectivity, packet loss, latency, and TCP service availability against configurable requirements.
 
