@@ -58,4 +58,26 @@ def load_config(path):
     )
     require_number(config, "connection_timeout_seconds", 0.1, 60)
 
+    latency = require_object(config, "latency")
+    require_number(latency, "packet_count", 1, 1000, integer=True)
+    require_number(latency, "max_packet_loss_percent", 0, 100)
+
+    sizes = latency.get("packet_sizes")
+    if not isinstance(sizes, list) or not sizes:
+        raise ConfigError("latency.packet_sizes must be a nonempty list")
+
+    if any(type(size) is not int or not 1 <= size <= 1400 for size in sizes):
+        raise ConfigError(
+            "latency.packet_sizes must contain integers from 1 to 1400"
+        )
+
+    if len(sizes) != len(set(sizes)):
+        raise ConfigError("latency.packet_sizes must not contain duplicates")
+
+    if "max_average_latency_ms" not in latency:
+        raise ConfigError("latency.max_average_latency_ms is required")
+
+    if latency["max_average_latency_ms"] is not None:
+        require_number(latency, "max_average_latency_ms", 0.1, 60000)
+
     return config

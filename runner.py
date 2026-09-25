@@ -5,6 +5,7 @@ from pathlib import Path
 
 from validation.config import ConfigError, load_config
 from validation.connectivity import test_connectivity
+from validation.latency import test_latency
 from validation.logging_setup import configure_logging
 from validation.result import Status
 
@@ -34,25 +35,68 @@ def main():
         logger.error("Configuration rejected: %s", exc)
         return 2
 
-    result = test_connectivity(config)
+    results = [test_connectivity(config)]
+
+    for size in config["latency"]["packet_sizes"]:
+        results.append(test_latency(config, size))
+
+    counts = {
+        status: sum(result.status == status for result in results)
+        for status in Status
+    }
+
+    if counts[Status.ERROR]:
+        overall = Status.ERROR
+        exit_code = 2
+    elif counts[Status.FAIL]:
+        overall = Status.FAIL
+        exit_code = 1
+    else:
+        overall = Status.PASS
+        exit_code = 0
 
     print("\nNETWORK DEVICE VALIDATION")
-    print(f"DUT: {config['dut']['name']} ({result.dut_host})")
-    print(f"{result.test_id} {result.test_name}: {result.status.value}")
+    print(f"DUT: {config['dut']['name']} ({config['dut']['host']})")
 
-    for diagnostic in result.diagnostics:
-        print(f"  {diagnostic}")
+    for result in results:
+        print(
+            f"{result.test_id} {result.test_name}: "
+            f"{result.status.value}"
+        )
 
-    print("\nStructured result:")
-    print(json.dumps(result.to_dict(), indent=2, allow_nan=False))
+        if result.status != Status.PASS:
+            for diagnostic in result.diagnostics:
+                print(f"  {diagnostic}")
 
-    logger.info("Validation run completed: %s", result.status.value)
+    print(
+        f"\nPassed: {counts[Status.PASS]} | "
+        f"Failed: {counts[Status.FAIL]} | "
+        f"Errors: {counts[Status.ERROR]} | "
+        f"Total: {len(results)}"
+    )
+    print(f"Overall: {overall.value}")
 
-    if result.status == Status.ERROR:
-        return 2
-    if result.status == Status.FAIL:
-        return 1
-    return 0
+    report = {
+        "dut": config["dut"],
+        "overall_status": overall.value,
+        "counts": {
+            status.value: counts[status]
+            for status in Status
+        },
+        "results": [result.to_dict() for result in results],
+    }
+
+    print("\nStructured results:")
+    print(json.dumps(report, indent=2, allow_nan=False))
+
+    logger.info(
+        "Validation run completed: overall=%s passed=%s failed=%s errors=%s",
+        overall.value,
+        counts[Status.PASS],
+        counts[Status.FAIL],
+        counts[Status.ERROR],
+    )
+    return exit_code
 
 
 if __name__ == "__main__":

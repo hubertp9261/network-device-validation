@@ -8,5 +8,11 @@
     "packet_count": 20,
     "max_packet_loss_percent": 0
   },
+  "latency": {
+    "packet_count": 20,
+    "packet_sizes": [64, 256, 512, 1024, 1400],
+    "max_average_latency_ms": 50,
+    "max_packet_loss_percent": 0
+  },
   "connection_timeout_seconds": 3
 }
