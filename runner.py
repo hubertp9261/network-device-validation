@@ -1,9 +1,12 @@
 import argparse
+import json
 import logging
 from pathlib import Path
 
 from validation.config import ConfigError, load_config
+from validation.connectivity import test_connectivity
 from validation.logging_setup import configure_logging
+from validation.result import Status
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -22,10 +25,8 @@ def main():
     )
     args = parser.parse_args()
 
-    log_path = PROJECT_ROOT / "logs" / "validation.log"
-    configure_logging(log_path)
-
-    logger.info("Setup check started")
+    configure_logging(PROJECT_ROOT / "logs" / "validation.log")
+    logger.info("Validation run started")
 
     try:
         config = load_config(args.config)
@@ -33,13 +34,24 @@ def main():
         logger.error("Configuration rejected: %s", exc)
         return 2
 
-    logger.info(
-        "Configuration accepted for DUT %s (%s)",
-        config["dut"]["name"],
-        config["dut"]["host"],
-    )
-    logger.info("Setup check complete. No network tests were executed.")
-    logger.info("Log file: %s", log_path)
+    result = test_connectivity(config)
+
+    print("\nNETWORK DEVICE VALIDATION")
+    print(f"DUT: {config['dut']['name']} ({result.dut_host})")
+    print(f"{result.test_id} {result.test_name}: {result.status.value}")
+
+    for diagnostic in result.diagnostics:
+        print(f"  {diagnostic}")
+
+    print("\nStructured result:")
+    print(json.dumps(result.to_dict(), indent=2, allow_nan=False))
+
+    logger.info("Validation run completed: %s", result.status.value)
+
+    if result.status == Status.ERROR:
+        return 2
+    if result.status == Status.FAIL:
+        return 1
     return 0
 
 
