@@ -8,6 +8,7 @@ from validation.connectivity import test_connectivity
 from validation.latency import test_latency
 from validation.logging_setup import configure_logging
 from validation.result import Status
+from validation.services import test_tcp_service
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -39,6 +40,10 @@ def main():
 
     for size in config["latency"]["packet_sizes"]:
         results.append(test_latency(config, size))
+	
+    results.append(
+        test_tcp_service(config, "SSH", config["dut"]["ssh_port"])
+    )
 
     counts = {
         status: sum(result.status == status for result in results)
