@@ -1,7 +1,7 @@
 {
   "dut": {
     "name": "hubpi",
-    "host": "10.90.55.66",
+    "host": "yourPiIP",
     "ssh_port": 22
   },
   "connectivity": {
