@@ -1,0 +1,12 @@
+{
+  "dut": {
+    "name": "hubpi",
+    "host": "10.90.55.66",
+    "ssh_port": 22
+  },
+  "connectivity": {
+    "packet_count": 20,
+    "max_packet_loss_percent": 0
+  },
+  "connection_timeout_seconds": 3
+}
